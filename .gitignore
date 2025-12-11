@@ -69,3 +69,4 @@ lint/outputs/
 lint/tmp/
 lint-baseline.xml
 /android/terminal logs
+/terminal logs
