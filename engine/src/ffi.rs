@@ -14,13 +14,13 @@ lazy_static! {
 }
 
 #[no_mangle]
-pub extern "C" fn engine_init(
+pub unsafe extern "C" fn engine_init(
     campaign_json: *const c_char,
     character_json: *const c_char,
     seed: u64,
 ) {
-    let camp_str = unsafe { CStr::from_ptr(campaign_json) }.to_str().unwrap();
-    let char_str = unsafe { CStr::from_ptr(character_json) }.to_str().unwrap();
+    let camp_str = CStr::from_ptr(campaign_json).to_str().unwrap();
+    let char_str = CStr::from_ptr(character_json).to_str().unwrap();
 
     let campaign: Campaign = Campaign::from_json(camp_str).expect("Invalid campaign JSON");
     let character: Character = Character::from_json(char_str).expect("Invalid character JSON");
@@ -31,7 +31,7 @@ pub extern "C" fn engine_init(
 }
 
 #[no_mangle]
-pub extern "C" fn engine_current_view() -> *mut c_char {
+pub unsafe extern "C" fn engine_current_view() -> *mut c_char {
     let guard = ENGINE.lock().unwrap();
     let engine = guard.as_ref().expect("Engine not initialized");
     let view: NodeView = engine.current_view();
@@ -40,8 +40,8 @@ pub extern "C" fn engine_current_view() -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn engine_choose(choice_id: *const c_char) {
-    let choice = unsafe { CStr::from_ptr(choice_id) }.to_str().unwrap();
+pub unsafe extern "C" fn engine_choose(choice_id: *const c_char) {
+    let choice = CStr::from_ptr(choice_id).to_str().unwrap();
     let mut guard = ENGINE.lock().unwrap();
     let engine = guard.as_mut().expect("Engine not initialized");
     engine.choose(choice);
@@ -49,11 +49,9 @@ pub extern "C" fn engine_choose(choice_id: *const c_char) {
 
 /// Helper for native side to free strings allocated by `engine_current_view`
 #[no_mangle]
-pub extern "C" fn engine_free_string(s: *mut c_char) {
+pub unsafe extern "C" fn engine_free_string(s: *mut c_char) {
     if s.is_null() {
         return;
     }
-    unsafe {
-        let _ = CString::from_raw(s);
-    }
+    let _ = CString::from_raw(s);
 }
