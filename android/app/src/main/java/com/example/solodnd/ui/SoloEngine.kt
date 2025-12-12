@@ -5,8 +5,8 @@ import kotlinx.serialization.json.Json
 
 object SoloEngine {
     init {
-        // You will need to place libsolo_engine.so in jniLibs for your ABI(s)
-        // System.loadLibrary("solo_engine")
+        // IMPORTANT: this must be uncommented
+        System.loadLibrary("solo_engine")
     }
 
     external fun engineInit(campaignJson: String, characterJson: String, seed: Long)

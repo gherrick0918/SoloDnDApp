@@ -46,8 +46,6 @@ pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineInit(
 }
 
 /// Kotlin: external fun engineCurrentView(): String
-///
-/// Signature: Java_com_example_solodnd_ui_SoloEngine_engineCurrentView
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineCurrentView(
     mut env: JNIEnv,
@@ -65,8 +63,6 @@ pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineCurre
 }
 
 /// Kotlin: external fun engineChoose(choiceId: String)
-///
-/// Signature: Java_com_example_solodnd_ui_SoloEngine_engineChoose
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineChoose(
     mut env: JNIEnv,
