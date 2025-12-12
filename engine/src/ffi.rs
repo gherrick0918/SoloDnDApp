@@ -13,6 +13,12 @@ lazy_static! {
     static ref ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 }
 
+/// Initialize the engine with a campaign + character JSON and RNG seed.
+///
+/// # Safety
+/// - `campaign_json` and `character_json` must be valid, null-terminated C strings.
+/// - They must remain valid for the duration of this call.
+/// - This function is intended to be called from JNI/FFI boundaries only.
 #[no_mangle]
 pub unsafe extern "C" fn engine_init(
     campaign_json: *const c_char,
@@ -30,6 +36,12 @@ pub unsafe extern "C" fn engine_init(
     *guard = Some(engine);
 }
 
+/// Get the current engine view as a newly allocated C string.
+///
+/// # Safety
+/// - The returned pointer must later be passed to `engine_free_string`.
+/// - It must not be freed by any other mechanism.
+/// - Returns null if initialization failed.
 #[no_mangle]
 pub unsafe extern "C" fn engine_current_view() -> *mut c_char {
     let guard = ENGINE.lock().unwrap();
@@ -39,6 +51,11 @@ pub unsafe extern "C" fn engine_current_view() -> *mut c_char {
     CString::new(json).unwrap().into_raw()
 }
 
+/// Apply the given choice ID to advance the engine.
+///
+/// # Safety
+/// - `choice_id` must be a valid, null-terminated C string.
+/// - Must be called only after `engine_init`.
 #[no_mangle]
 pub unsafe extern "C" fn engine_choose(choice_id: *const c_char) {
     let choice = CStr::from_ptr(choice_id).to_str().unwrap();
@@ -47,7 +64,11 @@ pub unsafe extern "C" fn engine_choose(choice_id: *const c_char) {
     engine.choose(choice);
 }
 
-/// Helper for native side to free strings allocated by `engine_current_view`
+/// Free a string previously returned by the engine.
+///
+/// # Safety
+/// - `s` must have been allocated by `engine_current_view`.
+/// - Must not be used after this call.
 #[no_mangle]
 pub unsafe extern "C" fn engine_free_string(s: *mut c_char) {
     if s.is_null() {

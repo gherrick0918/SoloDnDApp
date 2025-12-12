@@ -1,0 +1,114 @@
+{
+  "id": "road_to_redcrest",
+  "title": "The Road to Redcrest",
+  "startNodeId": "intro",
+  "nodes": [
+    {
+      "id": "intro",
+      "type": "narrative",
+      "title": "A Dusty Road",
+      "text": [
+        "You walk along a dusty country road toward the small town of Redcrest.",
+        "The afternoon sun hangs low, and the wind smells of wildflowers and distant smoke."
+      ],
+      "choices": [
+        {
+          "id": "press_on",
+          "label": "Press on toward Redcrest.",
+          "next": "goblin_ambush"
+        }
+      ]
+    },
+    {
+      "id": "goblin_ambush",
+      "type": "narrative",
+      "title": "Ambush!",
+      "text": [
+        "The road narrows as it cuts between two steep embankments.",
+        "A rustle in the brush is the only warning you get before crude arrows hiss through the air."
+      ],
+      "choices": [
+        {
+          "id": "fight",
+          "label": "Draw your weapon and fight!",
+          "next": "goblin_combat"
+        },
+        {
+          "id": "dive_for_cover",
+          "label": "Dive for cover and hope to avoid the worst of it.",
+          "skill_check": {
+            "ability": "DEX",
+            "dc": 12,
+            "success_next": "goblin_combat",
+            "failure_next": "goblin_combat",
+            "description": "You hurl yourself toward the roadside ditch."
+          }
+        }
+      ]
+    },
+    {
+      "id": "goblin_combat",
+      "type": "combat",
+      "title": "Goblin Skirmish",
+      "text": [
+        "Four goblins burst from the brush with wicked grins and rusty blades."
+      ],
+      "encounter": {
+        "monsters": [
+          {
+            "ref": "srd_goblin",
+            "count": 4
+          }
+        ]
+      },
+      "choices": [
+        {
+          "id": "attack",
+          "label": "Attack the nearest goblin!"
+        },
+        {
+          "id": "continue",
+          "label": "Brace yourself and continue the fight."
+        }
+      ],
+      "on_victory": "after_goblin_fight",
+      "on_defeat": "you_die"
+    },
+    {
+      "id": "after_goblin_fight",
+      "type": "narrative",
+      "title": "Aftermath",
+      "text": [
+        "The last goblin falls with a surprised gurgle.",
+        "You stand among the bodies, breathing hard, the road to Redcrest quiet once more."
+      ],
+      "choices": [
+        {
+          "id": "continue_to_town",
+          "label": "Continue on to Redcrest.",
+          "next": "end_good"
+        }
+      ]
+    },
+    {
+      "id": "you_die",
+      "type": "end",
+      "title": "The End",
+      "text": [
+        "Your vision goes dark as you collapse to the ground.",
+        "The goblins' cruel laughter is the last sound you hear."
+      ],
+      "choices": []
+    },
+    {
+      "id": "end_good",
+      "type": "end",
+      "title": "Redcrest Awaits",
+      "text": [
+        "Battered but alive, you see the wooden palisade of Redcrest rising ahead.",
+        "Whatever awaits within those walls, you have survived your first challenge on the road."
+      ],
+      "choices": []
+    }
+  ]
+}
