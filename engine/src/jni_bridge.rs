@@ -1,7 +1,8 @@
 use std::sync::Mutex;
+use std::ptr;
 
 use lazy_static::lazy_static;
-use jni::objects::{JClass, JString};
+use jni::objects::{JObject, JString};
 use jni::sys::{jlong, jstring};
 use jni::JNIEnv;
 
@@ -10,72 +11,126 @@ use crate::engine::Engine;
 use crate::rules::Character;
 
 lazy_static! {
-    static ref ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
+    static ref ENGINE_JNI: Mutex<Option<Engine>> = Mutex::new(None);
 }
 
-/// Kotlin: external fun engineInit(campaignJson: String, characterJson: String, seed: Long)
-///
-/// Signature: Java_com_example_solodnd_ui_SoloEngine_engineInit
+fn init_engine_internal(
+    campaign_json: &str,
+    character_json: &str,
+    seed: u64,
+) -> Result<(), String> {
+    let campaign: Campaign = serde_json::from_str(campaign_json)
+        .map_err(|e| format!("Invalid campaign JSON: {e}"))?;
+    let character: Character = serde_json::from_str(character_json)
+        .map_err(|e| format!("Invalid character JSON: {e}"))?;
+
+    let engine = Engine::new(campaign, character, seed);
+
+    let mut guard = ENGINE_JNI
+        .lock()
+        .map_err(|e| format!("Engine mutex poisoned: {e}"))?;
+    *guard = Some(engine);
+    Ok(())
+}
+
+fn current_view_internal() -> Result<String, String> {
+    let guard = ENGINE_JNI
+        .lock()
+        .map_err(|e| format!("Engine mutex poisoned: {e}"))?;
+    let engine = guard
+        .as_ref()
+        .ok_or_else(|| "Engine not initialized".to_string())?;
+    let view: NodeView = engine.current_view();
+    serde_json::to_string(&view).map_err(|e| format!("Failed to serialize view: {e}"))
+}
+
+fn choose_internal(choice_id: &str) -> Result<(), String> {
+    let mut guard = ENGINE_JNI
+        .lock()
+        .map_err(|e| format!("Engine mutex poisoned: {e}"))?;
+    let engine = guard
+        .as_mut()
+        .ok_or_else(|| "Engine not initialized".to_string())?;
+    engine.choose(choice_id);
+    Ok(())
+}
+
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineInit(
     mut env: JNIEnv,
-    _class: JClass,
-    j_campaign_json: JString,
-    j_character_json: JString,
+    _this: JObject,               // instance method receiver (Kotlin `object`)
+    campaign_json: JString,
+    character_json: JString,
     seed: jlong,
 ) {
-    let campaign_json: String = env
-        .get_string(&j_campaign_json)
-        .expect("Invalid campaign JSON string")
-        .into();
+    let camp: String = match env.get_string(&campaign_json) {
+        Ok(s) => s.into(),
+        Err(e) => {
+            let _ = env.throw_new(
+                "java/lang/RuntimeException",
+                format!("Failed to read campaign_json: {e}"),
+            );
+            return;
+        }
+    };
 
-    let character_json: String = env
-        .get_string(&j_character_json)
-        .expect("Invalid character JSON string")
-        .into();
+    let chara: String = match env.get_string(&character_json) {
+        Ok(s) => s.into(),
+        Err(e) => {
+            let _ = env.throw_new(
+                "java/lang/RuntimeException",
+                format!("Failed to read character_json: {e}"),
+            );
+            return;
+        }
+    };
 
-    let campaign =
-        Campaign::from_json(&campaign_json).expect("Failed to parse campaign JSON");
-    let character =
-        Character::from_json(&character_json).expect("Failed to parse character JSON");
-
-    let engine = Engine::new(campaign, character, seed as u64);
-
-    let mut guard = ENGINE.lock().unwrap();
-    *guard = Some(engine);
+    if let Err(err) = init_engine_internal(&camp, &chara, seed as u64) {
+        let _ = env.throw_new("java/lang/RuntimeException", err);
+    }
 }
 
-/// Kotlin: external fun engineCurrentView(): String
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineCurrentView(
     mut env: JNIEnv,
-    _class: JClass,
+    _this: JObject,
 ) -> jstring {
-    let guard = ENGINE.lock().unwrap();
-    let engine = guard.as_ref().expect("Engine not initialized");
-
-    let view: NodeView = engine.current_view();
-    let json = serde_json::to_string(&view).expect("Failed to serialize NodeView");
-
-    env.new_string(json)
-        .expect("Failed to create Java string")
-        .into_raw()
+    match current_view_internal() {
+        Ok(json) => match env.new_string(json) {
+            Ok(java_str) => java_str.into_raw(),
+            Err(e) => {
+                let _ = env.throw_new(
+                    "java/lang/RuntimeException",
+                    format!("Failed to create Java string: {e}"),
+                );
+                ptr::null_mut()
+            }
+        },
+        Err(err) => {
+            let _ = env.throw_new("java/lang/IllegalStateException", err);
+            ptr::null_mut()
+        }
+    }
 }
 
-/// Kotlin: external fun engineChoose(choiceId: String)
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineChoose(
     mut env: JNIEnv,
-    _class: JClass,
-    j_choice_id: JString,
+    _this: JObject,
+    choice_id: JString,
 ) {
-    let choice_id: String = env
-        .get_string(&j_choice_id)
-        .expect("Invalid choice id string")
-        .into();
+    let choice: String = match env.get_string(&choice_id) {
+        Ok(s) => s.into(),
+        Err(e) => {
+            let _ = env.throw_new(
+                "java/lang/RuntimeException",
+                format!("Failed to read choice_id: {e}"),
+            );
+            return;
+        }
+    };
 
-    let mut guard = ENGINE.lock().unwrap();
-    let engine = guard.as_mut().expect("Engine not initialized");
-
-    engine.choose(&choice_id);
+    if let Err(err) = choose_internal(&choice) {
+        let _ = env.throw_new("java/lang/RuntimeException", err);
+    }
 }
