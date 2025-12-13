@@ -3,6 +3,8 @@ package com.example.solodnd.ui
 import android.content.Context
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import android.util.Log
+import kotlinx.serialization.SerializationException
 
 object SoloEngine {
 
@@ -41,7 +43,33 @@ object SoloEngine {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun parseView(raw: String): NodeView = json.decodeFromString(raw)
+    fun parseView(raw: String): NodeView {
+        return try {
+            json.decodeFromString<NodeView>(raw)
+    } catch (e: Exception) {
+        // Log raw to logcat so we can see what the engine actually sent
+        Log.e("SoloEngine", "Failed to parse NodeView from engineCurrentView()", e)
+        Log.e("SoloEngine", "Raw JSON from engine: $raw")
+
+        // Show a friendly error node instead of crashing the app
+        NodeView(
+            title = "Engine Error",
+            text = listOf(
+                "The solo engine returned data we couldn't parse.",
+                e::class.simpleName ?: "Unknown exception",
+                e.message ?: "No details available."
+            ),
+            choices = emptyList(),
+            character_summary = CharacterSummary(
+                name = "Error",
+                level = 0,
+                current_hp = 0,
+                max_hp = 0,
+            ),
+            log = null,
+        )
+    }
+}
 
     /**
      * Convenience helper used by SoloScreen:

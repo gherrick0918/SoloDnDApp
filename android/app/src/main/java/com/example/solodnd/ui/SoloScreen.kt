@@ -48,9 +48,9 @@ fun SoloScreen() {
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "${'$'}{node.character_summary.name} " +
-                            "Lv ${'$'}{node.character_summary.level} " +
-                            "HP ${'$'}{node.character_summary.current_hp}/${'$'}{node.character_summary.max_hp}"
+                    text = "${node.character_summary.name} " +
+                    "Lv ${node.character_summary.level} " +
+                    "HP ${node.character_summary.current_hp}/${node.character_summary.max_hp}"
                 )
                 node.log?.let {
                     Spacer(Modifier.height(8.dp))

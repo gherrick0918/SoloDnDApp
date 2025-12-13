@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::ptr;
 
 use lazy_static::lazy_static;
-use jni::objects::{JObject, JString};
+use jni::objects::{JClass, JString};
 use jni::sys::{jlong, jstring};
 use jni::JNIEnv;
 
@@ -58,7 +58,7 @@ fn choose_internal(choice_id: &str) -> Result<(), String> {
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineInit(
     mut env: JNIEnv,
-    _this: JObject,               // instance method receiver (Kotlin `object`)
+    _cls: JClass,                    // static method receiver
     campaign_json: JString,
     character_json: JString,
     seed: jlong,
@@ -93,7 +93,7 @@ pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineInit(
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineCurrentView(
     mut env: JNIEnv,
-    _this: JObject,
+    _cls: JClass,
 ) -> jstring {
     match current_view_internal() {
         Ok(json) => match env.new_string(json) {
@@ -116,7 +116,7 @@ pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineCurre
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_example_solodnd_ui_SoloEngine_engineChoose(
     mut env: JNIEnv,
-    _this: JObject,
+    _cls: JClass,
     choice_id: JString,
 ) {
     let choice: String = match env.get_string(&choice_id) {
